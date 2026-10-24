@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Management - Login</title>
+</head>
+<body>
+    <h1>Online Student Management System</h1>
+    <h2>Login</h2>
+
+    {% if error %}
+        <p>{{ error }}</p>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+        <label for="username">Username:</label>
+        <input id="username" name="username" required>
+
+        <br><br>
+
+        <label for="password">Password:</label>
+        <input id="password" name="password"
+               type="password" required>
+
+        <br><br>
+
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>

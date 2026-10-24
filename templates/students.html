@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Management</title>
+</head>
+<body>
+    <h1>Student Management System</h1>
+
+    <p>
+        Welcome, {{ username }}.
+        Role: {{ role }}
+    </p>
+
+    <form method="POST" action="{{ url_for('logout') }}">
+        <button type="submit">Logout</button>
+    </form>
+
+    <h2>Add Student</h2>
+
+    <form id="student-form">
+        <label for="name">Name:</label>
+        <input id="name" name="name" required>
+
+        <label for="email">Email:</label>
+        <input id="email" name="email" type="email" required>
+
+        <label for="course">Course:</label>
+        <input id="course" name="course" required>
+
+        <button type="submit">Add Student</button>
+    </form>
+
+    <p id="message" role="status"></p>
+
+    <h2>Student Records</h2>
+
+    <table border="1" cellpadding="8">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Course</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody id="student-list">
+            {% for student in students %}
+            <tr data-id="{{ student.id }}">
+                <td>{{ student.id }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.email }}</td>
+                <td>{{ student.course }}</td>
+                <td>
+                    <button onclick="editStudent({{ student.id }})">
+                        Edit
+                    </button>
+
+                    {% if role == 'admin' %}
+                    <button onclick="deleteStudent({{ student.id }})">
+                        Delete
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        const message = document.getElementById("message");
+        const form = document.getElementById("student-form");
+        const list = document.getElementById("student-list");
+
+        async function api(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...(options.body
+                        ? {"Content-Type": "application/json"}
+                        : {}),
+                    ...options.headers
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Request failed");
+            }
+
+            return data;
+        }
+
+        function showMessage(text) {
+            message.textContent = text;
+        }
+
+        async function refreshStudents() {
+            const students = await api("/api/students");
+            list.replaceChildren();
+
+            for (const student of students) {
+                const row = document.createElement("tr");
+                row.dataset.id = student.id;
+
+                for (const value of [
+                    student.id,
+                    student.name,
+                    student.email,
+                    student.course
+                ]) {
+                    const cell = document.createElement("td");
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                }
+
+                const actions = document.createElement("td");
+
+                const edit = document.createElement("button");
+                edit.textContent = "Edit";
+                edit.onclick = () => editStudent(student.id);
+                actions.appendChild(edit);
+
+                {% if role == 'admin' %}
+                const remove = document.createElement("button");
+                remove.textContent = "Delete";
+                remove.onclick = () => deleteStudent(student.id);
+                actions.appendChild(remove);
+                {% endif %}
+
+                row.appendChild(actions);
+                list.appendChild(row);
+            }
+        }
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+
+            const data = Object.fromEntries(new FormData(form));
+
+            try {
+                await api("/api/students", {
+                    method: "POST",
+                    body: JSON.stringify(data)
+                });
+
+                form.reset();
+                await refreshStudents();
+                showMessage("Student added successfully.");
+            } catch (error) {
+                showMessage(error.message);
+            }
+        });
+
+        async function editStudent(id) {
+            const row = list.querySelector(`tr[data-id="${id}"]`);
+
+            if (!row) return;
+
+            const old = Array.from(row.cells).slice(1, 4)
+                .map(cell => cell.textContent);
+
+            const name = prompt("Enter student name:", old[0]);
+            if (name === null) return;
+
+            const email = prompt("Enter student email:", old[1]);
+            if (email === null) return;
+
+            const course = prompt("Enter course:", old[2]);
+            if (course === null) return;
+
+            try {
+                await api(`/api/students/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({name, email, course})
+                });
+
+                await refreshStudents();
+                showMessage("Student updated successfully.");
+            } catch (error) {
+                showMessage(error.message);
+            }
+        }
+
+        async function deleteStudent(id) {
+            if (!confirm("Delete this student record?")) return;
+
+            try {
+                await api(`/api/students/${id}`, {
+                    method: "DELETE"
+                });
+
+                await refreshStudents();
+                showMessage("Student deleted successfully.");
+            } catch (error) {
+                showMessage(error.message);
+            }
+        }
+    </script>
+</body>
+</html>
