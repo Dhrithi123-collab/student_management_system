@@ -1,3 +1,4 @@
+
 import pytest
 
 from app import create_app
@@ -5,22 +6,27 @@ from app import create_app
 
 @pytest.fixture
 def app(tmp_path):
+    """Create a Flask application with a temporary test database."""
     database = tmp_path / "test_students.db"
 
-    return create_app({
-        "TESTING": True,
-        "SECRET_KEY": "test-secret",
-        "DATABASE": str(database),
-    })
+    return create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret",
+            "DATABASE": str(database),
+        }
+    )
 
 
 @pytest.fixture
 def client(app):
+    """Create a test client."""
     return app.test_client()
 
 
 @pytest.fixture
 def logged_in_client(client):
+    """Log in as admin before running a test."""
     response = client.post(
         "/login",
         data={
@@ -33,8 +39,14 @@ def logged_in_client(client):
     return client
 
 
+# --------------------------------------------------
+# HOME PAGE AND LOGIN TESTS
+# --------------------------------------------------
+
+
 def test_home_redirects_to_login(client):
     response = client.get("/")
+
     assert response.status_code == 302
     assert "/login" in response.location
 
@@ -72,10 +84,33 @@ def test_invalid_login(client):
     assert b"Invalid username or password" in response.data
 
 
+# --------------------------------------------------
+# AUTHENTICATION AND AUTHORIZATION TESTS
+# --------------------------------------------------
+
+
 def test_student_api_requires_login(client):
     response = client.get("/api/students")
 
     assert response.status_code == 401
+
+
+def test_staff_login(client):
+    response = client.post(
+        "/login",
+        data={
+            "username": "staff",
+            "password": "Staff123!",
+        },
+    )
+
+    assert response.status_code == 302
+    assert "/students" in response.location
+
+
+# --------------------------------------------------
+# ADD STUDENT TESTS
+# --------------------------------------------------
 
 
 def test_add_student(logged_in_client):
@@ -105,6 +140,32 @@ def test_add_student_rejects_invalid_data(logged_in_client):
     assert response.status_code == 400
 
 
+def test_duplicate_email_is_rejected(logged_in_client):
+    student = {
+        "name": "Rahul Sharma",
+        "email": "rahul@example.com",
+        "course": "Computer Engineering",
+    }
+
+    first = logged_in_client.post(
+        "/api/students",
+        json=student,
+    )
+
+    second = logged_in_client.post(
+        "/api/students",
+        json=student,
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 409
+
+
+# --------------------------------------------------
+# VIEW STUDENT TESTS
+# --------------------------------------------------
+
+
 def test_list_students(logged_in_client):
     logged_in_client.post(
         "/api/students",
@@ -122,6 +183,11 @@ def test_list_students(logged_in_client):
     assert response.json[0]["name"] == "Rahul Sharma"
 
 
+# --------------------------------------------------
+# EDIT STUDENT TESTS
+# --------------------------------------------------
+
+
 def test_edit_student(logged_in_client):
     created = logged_in_client.post(
         "/api/students",
@@ -131,6 +197,8 @@ def test_edit_student(logged_in_client):
             "course": "Computer Engineering",
         },
     )
+
+    assert created.status_code == 201
 
     student_id = created.json["id"]
 
@@ -145,10 +213,12 @@ def test_edit_student(logged_in_client):
 
     assert response.status_code == 200
 
-    students = logged_in_client.get("/api/students").json
+    students = logged_in_client.get("/api/students")
 
-    assert students[0]["name"] == "Rahul Patil"
-    assert students[0]["course"] == "Information Technology"
+    assert students.status_code == 200
+    assert len(students.json) == 1
+    assert students.json[0]["name"] == "Rahul Patil"
+    assert students.json[0]["course"] == "Information Technology"
 
 
 def test_edit_nonexistent_student(logged_in_client):
@@ -164,6 +234,11 @@ def test_edit_nonexistent_student(logged_in_client):
     assert response.status_code == 404
 
 
+# --------------------------------------------------
+# DELETE STUDENT TESTS
+# --------------------------------------------------
+
+
 def test_delete_student(logged_in_client):
     created = logged_in_client.post(
         "/api/students",
@@ -174,6 +249,8 @@ def test_delete_student(logged_in_client):
         },
     )
 
+    assert created.status_code == 201
+
     student_id = created.json["id"]
 
     response = logged_in_client.delete(
@@ -181,17 +258,24 @@ def test_delete_student(logged_in_client):
     )
 
     assert response.status_code == 200
-    assert logged_in_client.get("/api/students").json == []
+
+    students = logged_in_client.get("/api/students")
+
+    assert students.status_code == 200
+    assert students.json == []
 
 
 def test_staff_cannot_delete_students(client):
-    client.post(
+    """Verify that staff can add students but cannot delete them."""
+    login_response = client.post(
         "/login",
         data={
             "username": "staff",
             "password": "Staff123!",
         },
     )
+
+    assert login_response.status_code == 302
 
     created = client.post(
         "/api/students",
@@ -202,25 +286,27 @@ def test_staff_cannot_delete_students(client):
         },
     )
 
+    assert created.status_code == 201
+
+    student_id = created.json["id"]
+
     response = client.delete(
-        f"/api/students/{created.json['id']}"
+        f"/api/students/{student_id}"
     )
 
     assert response.status_code == 403
 
+    students = client.get("/api/students")
 
-def test_duplicate_email_is_rejected(logged_in_client):
-    student = {
-        "name": "Rahul Sharma",
-        "email": "rahul@example.com",
-        "course": "Computer Engineering",
-    }
+    assert students.status_code == 200
+    assert len(students.json) == 1
+    assert students.json[0]["id"] == student_id
 
-    first = logged_in_client.post("/api/students", json=student)
-    second = logged_in_client.post("/api/students", json=student)
 
-    assert first.status_code == 201
-    assert second.status_code == 409
+# --------------------------------------------------
+# STATIC FILE TESTS
+# --------------------------------------------------
+
 
 def test_static_assets_are_available(client):
     css_response = client.get("/static/css/style.css")
@@ -228,6 +314,7 @@ def test_static_assets_are_available(client):
 
     assert css_response.status_code == 200
     assert b".login-shell" in css_response.data
+
     assert js_response.status_code == 200
     assert b"refreshStudents" in js_response.data
 
