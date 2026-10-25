@@ -3,29 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Student Management - Login</title>
+    <meta name="theme-color" content="#172554">
+    <title>Sign in | Student Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-    <h1>Online Student Management System</h1>
-    <h2>Login</h2>
+<body class="login-page">
+    <main class="login-shell">
+        <section class="login-brand-panel">
+            <div class="brand-mark" aria-hidden="true">SM</div>
+            <p class="eyebrow">STUDENT MANAGEMENT</p>
+            <h1>One place for every student record.</h1>
+            <p class="brand-copy">Manage student information clearly, securely, and efficiently.</p>
+            <div class="brand-points">
+                <span><span class="point-check">✓</span> Student records in one dashboard</span>
+                <span><span class="point-check">✓</span> Role-based access for staff and admins</span>
+                <span><span class="point-check">✓</span> Fast search and simple editing</span>
+            </div>
+        </section>
 
-    {% if error %}
-        <p>{{ error }}</p>
-    {% endif %}
+        <section class="login-form-panel">
+            <div class="mobile-brand">
+                <div class="brand-mark" aria-hidden="true">SM</div>
+                <span>Student Management</span>
+            </div>
+            <p class="eyebrow">WELCOME BACK</p>
+            <h2>Login to your account</h2>
+            <p class="muted">Enter your username and password to continue.</p>
 
-    <form method="POST" action="{{ url_for('login') }}">
-        <label for="username">Username:</label>
-        <input id="username" name="username" required>
+            {% if error %}
+                <div class="alert alert-error" role="alert">{{ error }}</div>
+            {% endif %}
 
-        <br><br>
+            <form method="POST" action="{{ url_for('login') }}" class="login-form">
+                <label for="username">Username</label>
+                <input id="username" name="username" autocomplete="username"
+                       placeholder="Enter your username" required autofocus>
 
-        <label for="password">Password:</label>
-        <input id="password" name="password"
-               type="password" required>
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password"
+                       autocomplete="current-password" placeholder="Enter your password" required>
 
-        <br><br>
+               <button class="button button-primary button-full" type="submit">
+    Login <span aria-hidden="true">→</span>
+</button>
+            </form>
 
-        <button type="submit">Login</button>
-    </form>
+            <p class="login-footnote">Use the account credentials configured for your application.</p>
+        </section>
+    </main>
 </body>
 </html>

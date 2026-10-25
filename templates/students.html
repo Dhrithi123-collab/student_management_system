@@ -3,203 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Student Management</title>
+    <meta name="theme-color" content="#172554">
+    <title>Students | Student Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
-<body>
-    <h1>Student Management System</h1>
+<body class="dashboard-page" data-role="{{ role }}">
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('students_page') }}">
+            <span class="brand-mark" aria-hidden="true">SM</span>
+            <span>Student<span class="brand-light">Management</span></span>
+        </a>
+        <div class="topbar-actions">
+            <span class="user-chip"><span class="user-avatar">{{ username[:1]|upper }}</span><span><strong>{{ username }}</strong><small>{{ role|title }}</small></span></span>
+            <form method="POST" action="{{ url_for('logout') }}">
+                <button class="button button-outline button-small" type="submit">Sign out</button>
+            </form>
+        </div>
+    </header>
 
-    <p>
-        Welcome, {{ username }}.
-        Role: {{ role }}
-    </p>
+    <main class="dashboard-container">
+        <section class="page-heading">
+            <div>
+                <p class="eyebrow">OVERVIEW</p>
+                <h1>Student records</h1>
+                <p class="muted">Add, review, and update student information from one place.</p>
+            </div>
+            <div class="heading-badge"><span class="status-dot"></span> System ready</div>
+        </section>
 
-    <form method="POST" action="{{ url_for('logout') }}">
-        <button type="submit">Logout</button>
-    </form>
+        <section class="stats-grid" aria-label="Student summary">
+            <article class="stat-card">
+                <div class="stat-icon icon-indigo" aria-hidden="true">▤</div>
+                <div><p>Total students</p><strong id="student-count">{{ students|length }}</strong></div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon icon-green" aria-hidden="true">✓</div>
+                <div><p>Account status</p><strong class="stat-word">Active</strong></div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon icon-amber" aria-hidden="true">♙</div>
+                <div><p>Signed in as</p><strong class="stat-word">{{ role|title }}</strong></div>
+            </article>
+        </section>
 
-    <h2>Add Student</h2>
+        <section class="content-grid">
+            <article class="panel form-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">STUDENT DETAILS</p>
+                        <h2 id="form-heading">Add a student</h2>
+                    </div>
+                    <span class="panel-icon" aria-hidden="true">＋</span>
+                </div>
+                <p class="muted panel-intro">Fill in the fields below. All fields are required.</p>
 
-    <form id="student-form">
-        <label for="name">Name:</label>
-        <input id="name" name="name" required>
+                <form id="student-form" class="student-form">
+                    <label for="name">Full name</label>
+                    <input id="name" name="name" maxlength="100" placeholder="e.g. Aditi Sharma" required>
 
-        <label for="email">Email:</label>
-        <input id="email" name="email" type="email" required>
+                    <label for="email">Email address</label>
+                    <input id="email" name="email" type="email" maxlength="254" placeholder="name@example.com" required>
 
-        <label for="course">Course:</label>
-        <input id="course" name="course" required>
+                    <label for="course">Course / Department</label>
+                    <input id="course" name="course" maxlength="100" placeholder="e.g. Computer Engineering" required>
 
-        <button type="submit">Add Student</button>
-    </form>
+                    <div class="form-actions">
+                        <button id="submit-student" class="button button-primary" type="submit">Add student</button>
+                        <button id="cancel-edit" class="button button-quiet" type="button" hidden>Cancel</button>
+                    </div>
+                </form>
+                <p id="message" class="inline-message" role="status" aria-live="polite"></p>
+            </article>
 
-    <p id="message" role="status"></p>
+            <article class="panel records-panel">
+                <div class="panel-heading records-heading">
+                    <div>
+                        <p class="eyebrow">DIRECTORY</p>
+                        <h2>All students</h2>
+                    </div>
+                    <span class="record-count" id="record-count">{{ students|length }} records</span>
+                </div>
 
-    <h2>Student Records</h2>
+                <div class="search-wrap">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="student-search" type="search" placeholder="Search by name, email, or course..." aria-label="Search students">
+                </div>
 
-    <table border="1" cellpadding="8">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Course</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-
-        <tbody id="student-list">
-            {% for student in students %}
-            <tr data-id="{{ student.id }}">
-                <td>{{ student.id }}</td>
-                <td>{{ student.name }}</td>
-                <td>{{ student.email }}</td>
-                <td>{{ student.course }}</td>
-                <td>
-                    <button onclick="editStudent({{ student.id }})">
-                        Edit
-                    </button>
-
-                    {% if role == 'admin' %}
-                    <button onclick="deleteStudent({{ student.id }})">
-                        Delete
-                    </button>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <script>
-        const message = document.getElementById("message");
-        const form = document.getElementById("student-form");
-        const list = document.getElementById("student-list");
-
-        async function api(url, options = {}) {
-            const response = await fetch(url, {
-                ...options,
-                headers: {
-                    ...(options.body
-                        ? {"Content-Type": "application/json"}
-                        : {}),
-                    ...options.headers
-                }
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || "Request failed");
-            }
-
-            return data;
-        }
-
-        function showMessage(text) {
-            message.textContent = text;
-        }
-
-        async function refreshStudents() {
-            const students = await api("/api/students");
-            list.replaceChildren();
-
-            for (const student of students) {
-                const row = document.createElement("tr");
-                row.dataset.id = student.id;
-
-                for (const value of [
-                    student.id,
-                    student.name,
-                    student.email,
-                    student.course
-                ]) {
-                    const cell = document.createElement("td");
-                    cell.textContent = value;
-                    row.appendChild(cell);
-                }
-
-                const actions = document.createElement("td");
-
-                const edit = document.createElement("button");
-                edit.textContent = "Edit";
-                edit.onclick = () => editStudent(student.id);
-                actions.appendChild(edit);
-
-                {% if role == 'admin' %}
-                const remove = document.createElement("button");
-                remove.textContent = "Delete";
-                remove.onclick = () => deleteStudent(student.id);
-                actions.appendChild(remove);
-                {% endif %}
-
-                row.appendChild(actions);
-                list.appendChild(row);
-            }
-        }
-
-        form.addEventListener("submit", async event => {
-            event.preventDefault();
-
-            const data = Object.fromEntries(new FormData(form));
-
-            try {
-                await api("/api/students", {
-                    method: "POST",
-                    body: JSON.stringify(data)
-                });
-
-                form.reset();
-                await refreshStudents();
-                showMessage("Student added successfully.");
-            } catch (error) {
-                showMessage(error.message);
-            }
-        });
-
-        async function editStudent(id) {
-            const row = list.querySelector(`tr[data-id="${id}"]`);
-
-            if (!row) return;
-
-            const old = Array.from(row.cells).slice(1, 4)
-                .map(cell => cell.textContent);
-
-            const name = prompt("Enter student name:", old[0]);
-            if (name === null) return;
-
-            const email = prompt("Enter student email:", old[1]);
-            if (email === null) return;
-
-            const course = prompt("Enter course:", old[2]);
-            if (course === null) return;
-
-            try {
-                await api(`/api/students/${id}`, {
-                    method: "PUT",
-                    body: JSON.stringify({name, email, course})
-                });
-
-                await refreshStudents();
-                showMessage("Student updated successfully.");
-            } catch (error) {
-                showMessage(error.message);
-            }
-        }
-
-        async function deleteStudent(id) {
-            if (!confirm("Delete this student record?")) return;
-
-            try {
-                await api(`/api/students/${id}`, {
-                    method: "DELETE"
-                });
-
-                await refreshStudents();
-                showMessage("Student deleted successfully.");
-            } catch (error) {
-                showMessage(error.message);
-            }
-        }
-    </script>
+                <div class="table-wrap">
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Email</th>
+                                <th>Course</th>
+                                <th class="actions-column">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-list">
+                            {% for student in students %}
+                            <tr data-id="{{ student.id }}">
+                                <td><span class="student-name">{{ student.name }}</span><small class="student-id">ID #{{ student.id }}</small></td>
+                                <td>{{ student.email }}</td>
+                                <td><span class="course-pill">{{ student.course }}</span></td>
+                                <td class="row-actions">
+                                    <button class="button button-quiet button-small" type="button" data-action="edit" data-id="{{ student.id }}">Edit</button>
+                                    {% if role == 'admin' %}
+                                    <button class="button button-danger-quiet button-small" type="button" data-action="delete" data-id="{{ student.id }}">Delete</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row"><td colspan="4"><div class="empty-state"><span aria-hidden="true">▤</span><strong>No students yet</strong><p>Add a student using the form to get started.</p></div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer"><span id="visible-count">Showing {{ students|length }} students</span><span>Student directory</span></div>
+            </article>
+        </section>
+        <footer class="page-footer">Student Management System <span>•</span> Built with Flask and SQLite</footer>
+    </main>
 </body>
 </html>

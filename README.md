@@ -1,83 +1,56 @@
 # Online Student Management System
 
-![CI Status](https://github.com/YOUR_USERNAME/student-management-system/actions/workflows/ci.yml/badge.svg)
+![CI Status](https://github.com/Dhrithi123-collab/student_management_system/actions/workflows/ci.yml/badge.svg)
 
-## Overview
-
-The Online Student Management System is a web application
-that allows authorized users to manage student records.
+A Flask and SQLite web application for viewing and managing student records, with admin/staff roles and automated CI checks.
 
 ## Features
 
-- Admin and staff login
-- Add student records
-- View student records
-- Update student details
-- Delete student records
-- SQLite database
-- REST API endpoints
-- Automated testing using pytest
-- Code quality checks using Ruff
-- Test coverage reporting
+- Login for admin and staff users
+- Add, list, and edit student records
+- Delete student records (admin only)
+- Search student records by name, email, or course
+- Responsive login and dashboard pages
+- JSON API backed by SQLite
+- Automated tests with pytest and coverage
+- Ruff lint checks and GitHub Actions CI
 
-## Technology Stack
+## Requirements
 
-- Python
-- Flask
-- SQLite
-- pytest
-- pytest-cov
-- Ruff
-- GitHub Actions
+- Python 3.11 or later
+- pip
 
-## Installation
+## Setup on Windows PowerShell
 
-Clone the repository:
-
-    git clone https://github.com/Dhrithi123-collab/student_management.git
-
-Navigate to the project:
-
-    cd student_management
-
-Create a virtual environment:
-
-    python -m venv venv
-
-Activate it on Windows:
-
-    venv\Scripts\activate
-
-Install dependencies:
-
-    pip install -r requirements.txt
-
-## Run the Application
-
-    python app.py
+```powershell
+git clone https://github.com/Dhrithi123-collab/student_management_system.git
+cd student_management_system
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python app.py
+```
 
 Open http://127.0.0.1:5000 in your browser.
 
-## Run Tests
+## Demo accounts
 
-    pytest
+For local coursework/testing only:
 
-## Run Tests with Coverage
+- Admin: `admin` / `Admin123!`
+- Staff: `staff` / `Staff123!`
 
-    pytest --cov=app --cov-report=term-missing
+The demo users are created automatically when the database is initialized. Do not use these demo credentials or the development secret in a public production deployment. Set a strong `SECRET_KEY` environment variable and configure real accounts before deployment.
 
-## Run Code Quality Checks
+## Tests and quality checks
 
-    ruff check .
+```powershell
+python -m pytest -v
+python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=70
+ruff check .
+```
 
 ## Continuous Integration
 
-GitHub Actions automatically runs the CI workflow on every
-push and pull request.
-
-The workflow installs dependencies, checks code quality,
-runs automated tests, enforces the minimum coverage threshold,
-and uploads the coverage report.
-
-A green check indicates that the workflow passed.
-A red cross indicates that one or more checks failed.
+GitHub Actions runs on every push and pull request. It installs dependencies, runs Ruff, executes pytest with coverage enforcement, and uploads `coverage.xml` as a workflow artifact.

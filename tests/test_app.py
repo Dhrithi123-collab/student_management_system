@@ -221,3 +221,20 @@ def test_duplicate_email_is_rejected(logged_in_client):
 
     assert first.status_code == 201
     assert second.status_code == 409
+
+def test_static_assets_are_available(client):
+    css_response = client.get("/static/css/style.css")
+    js_response = client.get("/static/js/app.js")
+
+    assert css_response.status_code == 200
+    assert b".login-shell" in css_response.data
+    assert js_response.status_code == 200
+    assert b"refreshStudents" in js_response.data
+
+
+def test_student_page_references_static_assets(logged_in_client):
+    response = logged_in_client.get("/students")
+
+    assert response.status_code == 200
+    assert b"/static/css/style.css" in response.data
+    assert b"/static/js/app.js" in response.data
