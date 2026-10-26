@@ -54,3 +54,6 @@ ruff check .
 ## Continuous Integration
 
 GitHub Actions runs on every push and pull request. It installs dependencies, runs Ruff, executes pytest with coverage enforcement, and uploads `coverage.xml` as a workflow artifact.
+## CI Verification
+
+This project uses GitHub Actions to automatically run tests, lint checks, and code coverage reports on every push and pull request.
